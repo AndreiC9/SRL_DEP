@@ -4,7 +4,7 @@ import json
 import copy
 import sys
 
-from util import *
+from .util import *
 
 
 conll2009_label_set = ['C-AM-EXT', 'AM-CAU', 'C-A1', 'AM-PRD',

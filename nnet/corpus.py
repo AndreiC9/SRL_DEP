@@ -6,7 +6,7 @@ def simple_reader(data, batch_size):
     print([iter(enumerate(data))])
     args = [iter(enumerate(data))] * batch_size
 
-    for batch in itertools.izip_longest(*args, fillvalue=None):
+    for batch in itertools.zip_longest(*args, fillvalue=None):
         yield [s for s in batch if s is not None]
 
 
