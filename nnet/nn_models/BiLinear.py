@@ -188,20 +188,19 @@ class BiLSTMTagger(nn.Module):
         elmo_emb = self.elmo_gamma_word * (w[0] * elmo_embedding_0 + w[1] * elmo_embedding_1)
         elmo_emb_word = self.elmo_mlp_word(elmo_emb)
         """
-        #contruct input for DEP
+        # contruct input for DEP
         embeds_DEP = self.word_embeddings_DEP(sentence)
         embeds_DEP = embeds_DEP.view(self.batch_size, len(sentence[0]), self.word_emb_dim)
         pos_embeds = self.pos_embeddings(pos_tags)
         region_marks = self.region_embeddings(region_marks).view(self.batch_size, len(sentence[0]), 16)
-        #sharing pretrained word_embeds
+        # sharing pretrained word_embeds
         fixed_embeds_DEP = self.word_fixed_embeddings(p_sentence)
         fixed_embeds_DEP = fixed_embeds_DEP.view(self.batch_size, len(sentence[0]), self.word_emb_dim)
 
         embeds_forDEP = torch.cat((embeds_DEP, fixed_embeds_DEP, pos_embeds, region_marks), 2)
         embeds_forDEP = self.DEP_input_dropout(embeds_forDEP)
 
-
-        #first layer
+        # first layer
         embeds_sort, lengths_sort, unsort_idx = self.sort_batch(embeds_forDEP, lengths)
         embeds_sort = rnn.pack_padded_sequence(embeds_sort, lengths_sort, batch_first=True)
         # hidden states [time_steps * batch_size * hidden_units]
@@ -220,22 +219,26 @@ class BiLSTMTagger(nn.Module):
         # it seems that hidden states is already batch first, we don't need swap the dims
         # hidden_states = hidden_states.permute(1, 2, 0).contiguous().view(self.batch_size, -1, )
         hidden_states, lens = rnn.pad_packed_sequence(hidden_states, batch_first=True)
-        #hidden_states = hidden_states.transpose(0, 1)
+        # hidden_states = hidden_states.transpose(0, 1)
         hidden_states_1 = hidden_states[unsort_idx]
 
         ###########################################
         Label_composer = hidden_states_1
         predicate_embeds = Label_composer[np.arange(0, Label_composer.size()[0]), target_idx_in]
+        print("Predicate embeds is\n", predicate_embeds.numpy().shape)
         # T * B * H
         added_embeds = torch.zeros(Label_composer.size()[1], Label_composer.size()[0], Label_composer.size()[2]).to(
             device)
+        print("Added embeds is\n", added_embeds.numpy().shape)
         concat_embeds = (added_embeds + predicate_embeds).transpose(0, 1)
+        
         Label_features = torch.cat((Label_composer, concat_embeds), 2)
-        dep_tag_space = self.MLP(self.label_dropout(F.tanh(self.hidden2tag(Label_features)))).view(
-            len(sentence[0]) * self.batch_size, -1)
+        dep_tag_space = self.MLP(
+            self.label_dropout(
+                F.tanh(self.hidden2tag(Label_features)))).view(
+                    len(sentence[0]) * self.batch_size, -1)
         dep_tag_space_use = self.MLP(F.tanh(self.hidden2tag(Label_features))).view(
             len(sentence[0]) * self.batch_size, -1)
-
 
         TagProbs_use = F.softmax(dep_tag_space_use, dim=1).view(self.batch_size, len(sentence[0]), -1)
         # construct SRL input
