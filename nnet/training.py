@@ -3,28 +3,32 @@ import torch.tensor
 from nnet.util import *
 import torch.autograd
 from torch.autograd import Variable
-from torch.nn.utils import clip_grad_value_
+# from torch.nn.utils import clip_grad_value_
 from torch import optim
 import time
 import random
-import copy
+# import copy
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 def make_local_voc(labels):
     return {i: label for i, label in enumerate(labels)}
 
 
-def train(model, train_set, dev_set, test_set, epochs, converter, dbg_print_rate, params_path):
+def train(model, train_set, dev_set, test_set, epochs, converter,
+          dbg_print_rate, params_path):
     idx = 0
     sample_count = 0.0
     best_F1 = -0.1
-    #optimizer = optim.Adadelta(model.parameters(), rho=0.95, eps=1e-6)
+    # optimizer = optim.Adadelta(model.parameters(), rho=0.95, eps=1e-6)
     model.to(device)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)
-    #optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.002, betas=(0.9, 0.9), eps=1e-12)
-    #log(optimizer.param_groups[0]['lr'])
-    #optimizer.param_groups[0]['lr'] = 0.001
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad,
+                                  model.parameters()),
+                           lr=0.001)
+    # optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.002, betas=(0.9, 0.9), eps=1e-12)
+    # log(optimizer.param_groups[0]['lr'])
+    # optimizer.param_groups[0]['lr'] = 0.001
 
     """
     Best_BiLSTM_0_data = []
@@ -59,11 +63,11 @@ def train(model, train_set, dev_set, test_set, epochs, converter, dbg_print_rate
             record_ids, batch = zip(*batch)
             model_input = converter(batch)
 
-            model.hidden = model.init_hidden_spe()
+            # model.hidden = model.init_hidden_spe()
             #model.hidden_0 = model.init_hidden_spe()
-            model.hidden_2 = model.init_hidden_spe()
-            model.hidden_3 = model.init_hidden_spe()
-            model.hidden_4 = model.init_hidden_share()
+            # model.hidden_2 = model.init_hidden_spe()
+            # model.hidden_3 = model.init_hidden_spe()
+            # model.hidden_4 = model.init_hidden_share()
 
             sentence = model_input[0]
             p_sentence = model_input[1]
@@ -127,9 +131,10 @@ def train(model, train_set, dev_set, test_set, epochs, converter, dbg_print_rate
 
             #log(dep_tags_in)
             #log(specific_dep_relations)
-            SRLloss, DEPloss, SPEDEPloss, loss, SRLprobs, wrong_l_nums, all_l_nums, spe_wrong_l_nums, spe_all_l_nums, \
-            right_noNull_predict, noNull_predict, noNUll_truth, \
-            right_noNull_predict_spe, noNull_predict_spe, noNUll_truth_spe\
+            SRLloss, DEPloss, SPEDEPloss, loss, SRLprobs, wrong_l_nums,\
+                all_l_nums, spe_wrong_l_nums, spe_all_l_nums,\
+                right_noNull_predict, noNull_predict, noNUll_truth, \
+                right_noNull_predict_spe, noNull_predict_spe, noNUll_truth_spe\
                 = model(sentence_in, p_sentence_in, pos_tags_in, sen_lengths, target_idx_in, region_mark_in,
                         local_roles_voc_in,
                         frames_in, local_roles_mask_in, sent_pred_lemmas_idx_in, dep_tags_in, dep_heads,
@@ -139,18 +144,18 @@ def train(model, train_set, dev_set, test_set, epochs, converter, dbg_print_rate
 
 
             idx += 1
-            #Final_loss = SRLloss + 0.5/(1 + 0.3 *(e-1)) * (DEPloss + SPEDEPloss)
-            #if batch_idx < dataset_len * 0.9:
-            Final_loss = SRLloss #+ 0.5 * (DEPloss + SPEDEPloss)
-            #else:
+            # Final_loss = SRLloss + 0.5/(1 + 0.3 *(e-1)) * (DEPloss + SPEDEPloss)
+            # if batch_idx < dataset_len * 0.9:
+            Final_loss = SRLloss # + 0.5 * (DEPloss + SPEDEPloss)
+            # else:
             #    Final_loss = SRLloss
 
-            #Final_loss = SRLloss
+            # Final_loss = SRLloss
             Final_loss.backward()
-            #clip_grad_norm_(parameters=model.hidden2tag_M.parameters(), max_norm=norm)
-            #clip_grad_norm_(parameters=model.hidden2tag_H.parameters(), max_norm=norm)
-            #clip_grad_value_(parameters=model.parameters(), clip_value=3)
-            #DEPloss.backward()
+            # clip_grad_norm_(parameters=model.hidden2tag_M.parameters(), max_norm=norm)
+            # clip_grad_norm_(parameters=model.hidden2tag_H.parameters(), max_norm=norm)
+            # clip_grad_value_(parameters=model.parameters(), clip_value=3)
+            # DEPloss.backward()
             optimizer.step()
 
 
@@ -159,7 +164,7 @@ def train(model, train_set, dev_set, test_set, epochs, converter, dbg_print_rate
 
             if idx % 100 ==0:
                 log(idx)
-                log("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+                log("+"*80)
                 log('SRLloss')
                 log(SRLloss)
                 #log("DEPloss")
@@ -174,9 +179,9 @@ def train(model, train_set, dev_set, test_set, epochs, converter, dbg_print_rate
                 del SPEDEPloss
                 del loss
                 del SRLprobs
-                del model.hidden
-                del model.hidden_2
-                del model.hidden_3
+                # del model.hidden
+                # del model.hidden_2
+                # del model.hidden_3
                 del model.hidden_4
 
             if idx % dbg_print_rate == 0:
@@ -231,9 +236,9 @@ def train(model, train_set, dev_set, test_set, epochs, converter, dbg_print_rate
                         model_input = converter(batch)
                         model.hidden = model.init_hidden_spe()
                         #model.hidden_0 = model.init_hidden_spe()
-                        model.hidden_2 = model.init_hidden_spe()
-                        model.hidden_3 = model.init_hidden_spe()
-                        model.hidden_4 = model.init_hidden_share()
+                        # model.hidden_2 = model.init_hidden_spe()
+                        # model.hidden_3 = model.init_hidden_spe()
+                        # model.hidden_4 = model.init_hidden_share()
 
 
                         sentence = model_input[0]
@@ -368,10 +373,11 @@ def train(model, train_set, dev_set, test_set, epochs, converter, dbg_print_rate
                         del SPEDEPloss
                         del loss
                         del SRLprobs
-                        del model.hidden
-                        del model.hidden_2
-                        del model.hidden_3
-                        del model.hidden_4
+                        torch.cuda.empty_cache()
+                        # del model.hidden
+                        # del model.hidden_2
+                        # del model.hidden_3
+                        # del model.hidden_4
 
 
                 Predicat_num = 6300
