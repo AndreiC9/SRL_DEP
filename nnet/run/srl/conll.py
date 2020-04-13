@@ -2,8 +2,6 @@ import argparse
 import itertools
 import json
 import re
-import sys
-
 from collections import defaultdict
 
 
@@ -23,7 +21,6 @@ def process_frame_2009(frame_ids, arguments, frames):
         roles = [label if label != '_' else 'O' for label in arg]
         frm = [l if l != '_' else 'O' for l in targ]
 
-
         for i, x in enumerate(frm):
             if x != 'O':
                 idx = i
@@ -35,7 +32,6 @@ def process_frame_2009(frame_ids, arguments, frames):
                 'index': [list(range(idx, idx + 1))]
             }
         })
-
     return frame_data
 
 
@@ -43,7 +39,6 @@ def arg_parse():
     parser = argparse.ArgumentParser("SRL argument extractor")
     parser.add_argument("--data", required=True)
     parser.add_argument("--preserve-sense", action='store_true')
-
     return parser.parse_args()
 
 
@@ -87,8 +82,8 @@ def from_2009(block, preserve_sense):
 
         block_arguments.append(arguments)
 
-
-    frame_data = process_frame_2009(block_frames, block_arguments, block_targets)
+    frame_data = process_frame_2009(block_frames, block_arguments,
+                                    block_targets)
     record.update(frame_data)
     return record
 
@@ -96,15 +91,16 @@ def from_2009(block, preserve_sense):
 def main():
     a = arg_parse()
     data = open(a.data)
-    #data = open('CoNLL2009-ST-English-trial.txt', 'r')
+    # data = open('CoNLL2009-ST-English-trial.txt', 'r')
     corpus = defaultdict(dict)
     for doc_id, block in enumerate(read_sentences(data)):
         corpus[doc_id][doc_id] = from_2009(block, a.preserve_sense)
-        #corpus[doc_id][doc_id] = from_2009(block, False)
+        # corpus[doc_id][doc_id] = from_2009(block, False)
 
     print(json.dumps(corpus, indent=4))
-    #file = open("CoNLL2009-ST-English-trial.txt.jason", 'w')
-    #file.write(json.dumps(corpus, indent=4))
+    # file = open("CoNLL2009-ST-English-trial.txt.jason", 'w')
+    # file.write(json.dumps(corpus, indent=4))
+
 
 if __name__ == '__main__':
     main()

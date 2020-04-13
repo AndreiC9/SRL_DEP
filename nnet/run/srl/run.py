@@ -1,7 +1,10 @@
-from nnet.run.runner import *
-from nnet.ml.voc import *
+from nnet.run import runner
+from nnet.ml import voc
+import nnet.util as util
 from functools import partial
-from nnet.nn_models.Biaffine_SRL_only_VR import BiLSTMTagger
+from nnet.nn_models.BiLSTM_Label_Link import BiLSTMTagger
+import numpy as np
+import torch
 
 all_labels_voc = []
 
@@ -11,18 +14,18 @@ def make_local_voc(labels):
 
 
 def bio_reader(record):
-    dbg_header, sent,  pos_tags, dep_parsing, root_dep_parsing, frame, target, f_lemmas, f_targets, labels_voc, \
-        labels, specific_dep_labels, specific_dep_relations = record.split(
-            '\t')
+    dbg_header, sent,  pos_tags, dep_parsing, root_dep_parsing, frame, target,\
+        f_lemmas, f_targets, labels_voc, labels, specific_dep_labels,\
+        specific_dep_relations = record.split('\t')
 
     sense = dbg_header[-2:]
 
-    #labels_voc = labels_voc.split(' ')
+    # labels_voc = labels_voc.split(' ')
     # log(all_labels_voc)
     # log(labels_voc)
     labels_voc = all_labels_voc
 
-    #labels_voc.insert(0, '<pad>')
+    # labels_voc.insert(0, '<pad>')
     frame = frame.split('.')[0]
     frame = [frame] * len(labels_voc)
     words = []
@@ -31,8 +34,8 @@ def bio_reader(record):
 
     pos_tags = pos_tags.split(' ')
 
-    #pos_tags.insert(0, '<pad>')
-    #words.insert(0, '.')
+    # pos_tags.insert(0, '<pad>')
+    # words.insert(0, '.')
 
     labels = labels.split(' ')
     labels.insert(0, sense)
@@ -44,7 +47,7 @@ def bio_reader(record):
     elif pos_tags[int(target)].startswith("N"):
         dbg_header = 'N'
 
-    #assert (len(words) == len(labels))
+    # assert (len(words) == len(labels))
 
     # convert labels into indexes in labels_voc
 
@@ -65,25 +68,24 @@ def bio_reader(record):
     f_targets = f_targets.split(' ')
 
     return dbg_header, words, pos_tags, dep_parsing, root_dep_parsing, frame, \
-        np.int64(target), f_lemmas, np.int64(
-            f_targets), labels_voc, labels, specific_dep_labels, specific_dep_relations
+        np.int64(target), f_lemmas, np.int64(f_targets), labels_voc, labels, \
+        specific_dep_labels, specific_dep_relations
 
 
-
-class SRLRunner(Runner):
+class SRLRunner(runner.Runner):
     def __init__(self):
         super(SRLRunner, self).__init__()
 
-        self.word_voc = create_voc('file', self.a.word_voc)
+        self.word_voc = voc.create_voc('file', self.a.word_voc)
         self.word_voc.add_unks()
-        self.freq_voc = frequency_voc(self.a.freq_voc)
-        self.p_word_voc = create_voc('file', self.a.p_word_voc)
+        self.freq_voc = voc.frequency_voc(self.a.freq_voc)
+        self.p_word_voc = voc.create_voc('file', self.a.p_word_voc)
         self.p_word_voc.add_unks()
-        self.role_voc = create_voc('file', self.a.role_voc)
-        self.frame_voc = create_voc('file', self.a.frame_voc)
-        self.pos_voc = create_voc('file', self.a.pos_voc)
-        self.dep_voc = create_voc('file', self.a.dep_voc)
-        self.specific_dep_voc = create_voc('file', self.a.specific_dep_voc)
+        self.role_voc = voc.create_voc('file', self.a.role_voc)
+        self.frame_voc = voc.create_voc('file', self.a.frame_voc)
+        self.pos_voc = voc.create_voc('file', self.a.pos_voc)
+        self.dep_voc = voc.create_voc('file', self.a.dep_voc)
+        self.specific_dep_voc = voc.create_voc('file', self.a.specific_dep_voc)
 
         # read the role_voc
         file_in = open(self.a.role_voc, 'r')
@@ -91,7 +93,7 @@ class SRLRunner(Runner):
             all_labels_voc.append(line.strip())
         file_in.close()
         # log(self.word_voc.direct)
-        log('SRLRunner has inistialized!')
+        util.log('SRLRunner has inistialized!')
 
     def add_special_args(self, parser):
         parser.add_argument(
@@ -140,14 +142,14 @@ class SRLRunner(Runner):
         return partial(bio_reader)
 
     def get_reader(self):
-        return simple_reader
+        # return simple_reader
+        raise NotImplementedError
 
     def get_converter(self):
         def bio_converter(batch):
             header, sent_, pos_tags, dep_parsing, root_dep_parsing, frames, \
-                targets, f_lemmas, f_targets, labels_voc, labels, specific_dep_labels, specific_dep_relations = list(
-                    zip(*batch))
-
+                targets, f_lemmas, f_targets, labels_voc, labels, \
+                specific_dep_labels, specific_dep_relations = list(zip(*batch))
 
             sent = [self.word_voc.vocalize(w) for w in sent_]
 
@@ -163,7 +165,7 @@ class SRLRunner(Runner):
             dep_seq = []
             for w in dep_parsing:
                 tags = [p[0] for p in w]
-                #tags.insert(0, '<pad>')
+                # tags.insert(0, '<pad>')
                 dep_seq.append(tags)
             dep_tags = [self.dep_voc.vocalize(p) for p in dep_seq]
             specific_dep_tags = [self.dep_voc.vocalize(
@@ -175,7 +177,7 @@ class SRLRunner(Runner):
             dep_head = []
             for w in dep_parsing:
                 heads = [int(p[2]) for p in w]
-                #heads.insert(0, -1)
+                # heads.insert(0, -1)
                 dep_head.append(heads)
 
             frames = [self.frame_voc.vocalize(f) for f in frames]
@@ -183,22 +185,22 @@ class SRLRunner(Runner):
 
             lemmas_idx = [self.frame_voc.vocalize(f) for f in f_lemmas]
 
-            #labels = [self.role_voc.vocalize(w) for w in labels]
+            # labels = [self.role_voc.vocalize(w) for w in labels]
 
-            sent_batch, sent_mask = mask_batch(sent)
+            sent_batch, sent_mask = util.mask_batch(sent)
 
-            p_sent_batch, _ = mask_batch(p_sent)
-            freq_batch, _ = mask_batch(freq)
+            p_sent_batch, _ = util.mask_batch(p_sent)
+            freq_batch, _ = util.mask_batch(freq)
             freq_batch = freq_batch.astype(dtype='float32')
 
-            pos_batch, _ = mask_batch(pos_tags)
-            dep_tag_batch, _ = mask_batch(dep_tags)
+            pos_batch, _ = util.mask_batch(pos_tags)
+            dep_tag_batch, _ = util.mask_batch(dep_tags)
 
-            specific_dep_tag_batch, _ = mask_batch(specific_dep_tags)
-            specific_dep_relations_batch, _ = mask_batch(
+            specific_dep_tag_batch, _ = util.mask_batch(specific_dep_tags)
+            specific_dep_relations_batch, _ = util.mask_batch(
                 specific_dep_relations)
-            dep_head_batch, _ = mask_batch(dep_head)
-            labels_voc_batch, labels_voc_mask = mask_batch(labels_voc)
+            dep_head_batch, _ = util.mask_batch(dep_head)
+            labels_voc_batch, labels_voc_mask = util.mask_batch(labels_voc)
             # mask no predicate deptags"
 
             for i in range(len(dep_tag_batch)):
@@ -214,8 +216,8 @@ class SRLRunner(Runner):
             for line in labels_voc_mask:
                 line[0] = 0
 
-            labels_batch, _ = mask_batch(labels)
-            frames_batch, _ = mask_batch(frames)
+            labels_batch, _ = util.mask_batch(labels)
+            frames_batch, _ = util.mask_batch(frames)
 
             region_mark = np.zeros(sent_batch.shape, dtype='int64')
             hps = eval(self.a.hps)
@@ -237,19 +239,19 @@ class SRLRunner(Runner):
                 sent_pred_lemmas_idx, dtype='int64')
 
             # assert (sent_batch.shape == sent_mask.shape)
-            # assert (frames_batch.shape == labels_voc_batch.shape == labels_voc_mask.shape)
+            # assert (frames_batch.shape == labels_voc_batch.shape ==
+            #   labels_voc_mask.shape)
             # assert (labels_batch.shape == sent_batch.shape)
 
-            return sent_batch, p_sent_batch, pos_batch, sent_mask, targets, frames_batch, \
-                labels_voc_batch, \
-                labels_voc_mask, freq_batch, \
-                region_mark, \
-                sent_pred_lemmas_idx, \
-                dep_tag_batch, dep_head_batch, labels_batch, specific_dep_tag_batch, specific_dep_relations_batch
+            return sent_batch, p_sent_batch, pos_batch, sent_mask, targets, \
+                frames_batch, labels_voc_batch, labels_voc_mask, freq_batch, \
+                region_mark, sent_pred_lemmas_idx, dep_tag_batch, \
+                dep_head_batch, labels_batch, specific_dep_tag_batch, \
+                specific_dep_relations_batch
         return bio_converter
 
     def load_model(self):
-        log("start to build model ....")
+        util.log("start to build model ....")
         hps = eval(self.a.hps)
 
         hps['vframe'] = self.frame_voc.size()
@@ -260,9 +262,12 @@ class SRLRunner(Runner):
         hps['batch_size'] = self.a.batch
         hps['svdep'] = self.specific_dep_voc.size()
         # do not use pre-trained embedding for now # FIXME What do they mean?
-        hps['word_embeddings'] = parse_word_embeddings(self.a.word_embeddings)
-        #hps['elmo_embeddings_0'] = parse_word_embeddings(self.a.elmo_embeddings_0)
-        #hps['elmo_embeddings_1'] = parse_word_embeddings(self.a.elmo_embeddings_1)
+        hps['word_embeddings'] = util.parse_word_embeddings(
+            self.a.word_embeddings)
+        # hps['elmo_embeddings_0'] = parse_word_embeddings(self.a.
+        #   elmo_embeddings_0)
+        # hps['elmo_embeddings_1'] = parse_word_embeddings(self.a.
+        #   elmo_embeddings_1)
         hps['in_arcs'] = True
         hps['out_arcs'] = True
         torch.manual_seed(1)

@@ -2,6 +2,7 @@ import itertools
 import functools
 import random
 
+
 def simple_reader(data, batch_size):
     print([iter(enumerate(data))])
     args = [iter(enumerate(data))] * batch_size
@@ -21,7 +22,8 @@ class Corpus(object):
     def batches(self):
         with open(self.path, 'r') as data:
             for batch in self.reader(data, self.bath_size):
-                batch = [(id, self.parser(record[:-1])) for (id, record) in batch]
+                batch = [(id,
+                          self.parser(record[:-1])) for (id, record) in batch]
                 yield batch
 
     def get_batch_size(self):

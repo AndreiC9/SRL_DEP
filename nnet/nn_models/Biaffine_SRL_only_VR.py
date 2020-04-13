@@ -1,23 +1,23 @@
 from __future__ import unicode_literals, print_function, division
-from io import open
-import unicodedata
-import string
-import re
-import random
-from nnet.util import *
+# from io import open
+# import unicodedata
+# import string
+# import re
+# import random
+# from nnet.util import *
 
 import numpy as np
 import torch
-import math
+# import math
 import torch.nn as nn
 import torch.autograd
 from torch.autograd import Variable
-from torch import optim
+# from torch import optim
 import torch.nn.functional as F
 import torch.nn.utils.rnn as rnn
 import torch.nn.init as init
-from numpy import random as nr
-from operator import itemgetter
+# from numpy import random as nr
+# from operator import itemgetter
 
 _BIG_NUMBER = 10. ** 6.
 
@@ -32,9 +32,9 @@ def cat(l, dimension=-1):
 
 
 '''
---hps "{'id': 1, 'sent_edim': 100, 'sent_hdim': 512, \
-'frame_edim': 128, 'role_edim': 128, 'pos_edim': 16, 'rec_layers': 1, 'gc_layers': 0, \
-'pos': True, 'rm':0, 'alpha': 0.25, \
+--hps "{'id': 1, 'sent_edim': 100, 'sent_hdim': 512,
+'frame_edim': 128, 'role_edim': 128, 'pos_edim': 16, 'rec_layers': 1,
+'gc_layers': 0, 'pos': True, 'rm':0, 'alpha': 0.25,
 'p_lemmas':True}"
 '''
 
@@ -61,24 +61,21 @@ class BiLSTMTagger(nn.Module):
 
         # The input of the dependency extractor has 2 word embeddings (one
         # randomly initialized and one pre-trained) and 1 part of speech
-        # embedding
-        #
-        # Not exactly clear why the 16 is added afterwards (lemma embedding??)
-        sent_embedding_dim_DEP = 2 * \
-            hps['sent_edim'] + 1 * hps['pos_edim'] + 16
+        # embedding + region dimension
+        # sent_embedding_dim_DEP = 2 * \
+        #     hps['sent_edim'] + 1 * hps['pos_edim'] + 16
 
         # The input of the dependency extractor has 2 word embeddings and 1
-        # part of speech embedding
-        # Not exactly clear why the 16 is added afterwards (lemma embedding??)
+        # part of speech embedding + region dimension
         sent_embedding_dim_SRL = 3 * \
             hps['sent_edim'] + 1 * hps['pos_edim'] + 16
         self.SRL_input_dim = sent_embedding_dim_SRL
         # for the region mark
 
         # Set to 128 dimensions
-        role_embedding_dim = hps['role_edim']
+        # role_embedding_dim = hps['role_edim']
 
-        frame_embedding_dim = role_embedding_dim
+        # frame_embedding_dim = role_embedding_dim
 
         # Word vocabulary size, based on file size
         vocab_size = hps['vword']
@@ -104,19 +101,22 @@ class BiLSTMTagger(nn.Module):
 
         self.word_emb_dim = hps['sent_edim']
 
-        # Specific Dependencies are all the labels of the syntactic relationships
+        # Specific Dependencies are all the labels of the syntactic
+        # relationships
         self.specific_dep_size = hps['svdep']
 
         self.word_embeddings_SRL = nn.Embedding(
             num_embeddings=vocab_size, embedding_dim=hps['sent_edim'])
 
-        # self.word_embeddings_DEP = nn.Embedding(vocab_size, hps['sent_edim']) # Not used?
+        # self.word_embeddings_DEP = nn.Embedding(vocab_size,
+        #   hps['sent_edim']) # Not used?
 
         # Part of speech embeddings
         self.pos_embeddings = nn.Embedding(
             num_embeddings=self.pos_size, embedding_dim=hps['pos_edim'])
 
-        # self.pos_embeddings_DEP = nn.Embedding(self.pos_size, hps['pos_edim']) # Not used?
+        # self.pos_embeddings_DEP = nn.Embedding(self.pos_size,
+        #   hps['pos_edim']) # Not used?
 
         # Embeddings for the predicate lemma
         self.p_lemma_embeddings = nn.Embedding(
@@ -162,10 +162,12 @@ class BiLSTMTagger(nn.Module):
         # self.MLP_spe = nn.Linear(2 * lstm_hidden_dim, 4)
         # self.tag2hidden_spe = nn.Linear(4, self.pos_size)
         # # self.elmo_embeddings_0 = nn.Embedding(vocab_size, 1024)
-        # # self.elmo_embeddings_0.weight.data.copy_(torch.from_numpy(hps['elmo_embeddings_0']))
+        # # self.elmo_embeddings_0.weight.data.copy_(torch.from_numpy
+        #   (hps['elmo_embeddings_0']))
 
         # # self.elmo_embeddings_1 = nn.Embedding(vocab_size, 1024)
-        # # self.elmo_embeddings_1.weight.data.copy_(torch.from_numpy(hps['elmo_embeddings_1']))
+        # # self.elmo_embeddings_1.weight.data.
+        #   copy_(torch.from_numpy(hps['elmo_embeddings_1']))
 
         # self.elmo_emb_size = 200
         # self.elmo_mlp_word = nn.Sequential(
@@ -196,7 +198,8 @@ class BiLSTMTagger(nn.Module):
         #                         bidirectional=True,
         #                         num_layers=self.num_layers)
 
-        # print("Size of all_weights", (numpy.ndarray(self.BiLSTM_0.all_weights)).shape)
+        # print("Size of all_weights",
+        #   (numpy.ndarray(self.BiLSTM_0.all_weights)).shape)
         # init.orthogonal_(self.BiLSTM_0.all_weights[0][0])
         # init.orthogonal_(self.BiLSTM_0.all_weights[0][1])
         # init.orthogonal_(self.BiLSTM_0.all_weights[1][0])
@@ -216,8 +219,10 @@ class BiLSTMTagger(nn.Module):
 
         self.num_layers = 3
         self.BiLSTM_SRL = nn.LSTM(input_size=sent_embedding_dim_SRL,
-                                  hidden_size=lstm_hidden_dim, batch_first=True,
-                                  bidirectional=True, num_layers=self.num_layers)
+                                  hidden_size=lstm_hidden_dim,
+                                  batch_first=True,
+                                  bidirectional=True,
+                                  num_layers=self.num_layers)
 
         init.orthogonal_(self.BiLSTM_SRL.all_weights[0][0])
         init.orthogonal_(self.BiLSTM_SRL.all_weights[0][1])
@@ -226,14 +231,15 @@ class BiLSTMTagger(nn.Module):
 
         # non-linear map to role embedding
         # self.role_map = nn.Linear(
-        #     in_features=role_embedding_dim * 2, out_features=self.hidden_dim * 4)
+        #     in_features=role_embedding_dim * 2,
+        #     out_features=self.hidden_dim * 4)
 
         # Is this the hidden value?
         self.VR_embedding = nn.Parameter(
-            torch.from_numpy(np.zeros((1, sent_embedding_dim_SRL), dtype='float32')))
+            torch.from_numpy(np.zeros((1, sent_embedding_dim_SRL),
+                                      dtype='float32')))
 
         self.map_dim = lstm_hidden_dim
-
 
         # self.mlp_word = MLP(
         #     in_features=2 * lstm_hidden_dim,
@@ -267,8 +273,10 @@ class BiLSTMTagger(nn.Module):
         # The axes semantics are (num_layers, minibatch_size, hidden_dim)
         # return (Variable(torch.zeros(1, self.batch_size, self.hidden_dim)),
         #        Variable(torch.zeros(1, self.batch_size, self.hidden_dim)))
-        return (torch.zeros(3 * 2, self.batch_size, self.hidden_dim, requires_grad=False).to(device),
-                torch.zeros(3 * 2, self.batch_size, self.hidden_dim, requires_grad=False).to(device))
+        return (torch.zeros(3 * 2, self.batch_size, self.hidden_dim,
+                            requires_grad=False).to(device),
+                torch.zeros(3 * 2, self.batch_size, self.hidden_dim,
+                            requires_grad=False).to(device))
 
     def init_hidden_spe(self):
         # Before we've done anything, we dont have any hidden state.
@@ -277,12 +285,15 @@ class BiLSTMTagger(nn.Module):
         # The axes semantics are (num_layers, minibatch_size, hidden_dim)
         # return (Variable(torch.zeros(1, self.batch_size, self.hidden_dim)),
         #        Variable(torch.zeros(1, self.batch_size, self.hidden_dim)))
-        return (torch.zeros(1 * 2, self.batch_size, self.hidden_dim, requires_grad=False).to(device),
-                torch.zeros(1 * 2, self.batch_size, self.hidden_dim, requires_grad=False).to(device))
+        return (torch.zeros(1 * 2, self.batch_size, self.hidden_dim,
+                            requires_grad=False).to(device),
+                torch.zeros(1 * 2, self.batch_size, self.hidden_dim,
+                            requires_grad=False).to(device))
 
-    def forward(self, sentence, p_sentence, pos_tags, lengths, target_idx_in, region_marks,
-                local_roles_voc, frames, local_roles_mask,
-                sent_pred_lemmas_idx, dep_tags, dep_heads, targets, specific_dep_tags, specific_dep_relations,
+    def forward(self, sentence, p_sentence, pos_tags, lengths, target_idx_in,
+                region_marks, local_roles_voc, frames, local_roles_mask,
+                sent_pred_lemmas_idx, dep_tags, dep_heads, targets,
+                specific_dep_tags, specific_dep_relations,
                 test=False):
         """
 
@@ -346,7 +357,7 @@ class BiLSTMTagger(nn.Module):
 
         # B * H
         hidden_states_3 = hidden_states
-        
+
         # This next block appears only in the _VR file
         target_idx_in = list(target_idx_in)
         for i in range(len(target_idx_in)):
@@ -354,7 +365,10 @@ class BiLSTMTagger(nn.Module):
         target_idx_in = tuple(target_idx_in)
 
         predicate_embeds = F.relu(
-            self.Predicate_Proj(hidden_states_3[np.arange(0, hidden_states_3.size()[0]), target_idx_in]))
+            self.Predicate_Proj(
+                hidden_states_3[np.arange(0,
+                                          hidden_states_3.size()[0]),
+                                target_idx_in]))
 
         hidden_states = F.relu(self.Non_Predicate_Proj(hidden_states))
 

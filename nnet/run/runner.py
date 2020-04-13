@@ -16,21 +16,24 @@ class Runner(object):
         parser.add_argument("--test", help="validation set")
         parser.add_argument("--dev", help="vadation set2")
         parser.add_argument("--train", help="training set", required=False)
-        parser.add_argument("--batch", help="batch size", default=128, type=int)
+        parser.add_argument("--batch", help="batch size",
+                            default=128, type=int)
         parser.add_argument("--epochs", help="n of epochs",
                             default=sys.maxsize, type=int)
-        #parser.add_argument("--seed", help="manual set seed", default=1, type=int)
-        #parser.add_argument("-optimizer", default="adadelta")
+        # parser.add_argument("--seed", help="manual set seed", default=1,
+        #   type=int)
+        # parser.add_argument("-optimizer", default="adadelta")
         parser.add_argument("--out", help="output dir", default="out")
-        #parser.add_argument("--dump-ratio", default=200000, type=int)
-        #parser.add_argument("log-level", default="ERROR")
+        # parser.add_argument("--dump-ratio", default=200000, type=int)
+        # parser.add_argument("log-level", default="ERROR")
         parser.add_argument("--finetune", help="pretrained model path")
-        #parser.add_argument("--early-stop", action="store_true")
+        # parser.add_argument("--early-stop", action="store_true")
         parser.add_argument("--dbg-print-rate", help="in BATCHES", type=int,
                             default=5000)
         parser.add_argument("--test-only", action="store_true", required=False)
         parser.add_argument("--test-model", required=False)
-        parser.add_argument("--params-path", help="pretrained model path", required=False)
+        parser.add_argument("--params-path", help="pretrained model path",
+                            required=False)
         self.add_special_args(parser)
         self.a = parser.parse_args()
 
@@ -42,23 +45,22 @@ class Runner(object):
             parser.error('specify --test')
 
     def get_reader(self):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def get_tester(self):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def get_parser(self):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def get_converter(self):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def load_model(self):
-        raise NotImplemented()
-
+        raise NotImplementedError()
 
     def add_special_args(self, parser):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def run(self):
         a = self.a
@@ -81,8 +83,8 @@ class Runner(object):
             parser=self.get_parser(),
             batch_size=a.batch,
             path=a.train,
-            #return in run.py, just the simple_reader() in corpus.py
-            reader=self.get_reader()
+            # return in run.py, just the simple_reader() in corpus.py
+            # reader=self.get_reader()
         )
 
         dev_set = Corpus(

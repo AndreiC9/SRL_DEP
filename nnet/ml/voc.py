@@ -1,7 +1,9 @@
 from collections import Counter
 from nnet.ml.formats import create_tokenizer
 from multiprocessing import cpu_count, Pool
-from nnet.run.runner import *
+from nnet.run.runner import argparse
+import sys
+
 
 class Voc(object):
     def vocalize(self, seq):
@@ -55,14 +57,12 @@ class FileVoc(TwoWayVoc):
 
             voc = [l[:-1] for l in f.readlines()]
 
-
             # unk, eos, bos = 'UNK', '$', '^'
             # voc += [unk, bos, eos]
             voc.append('_UNK')
             self.direct = [l.split('\t')[0] for l in voc]
             self.inverted = {id: token for token, id in enumerate(self.direct)}
-            #print(self.inverted)
-
+            # print(self.inverted)
 
     def add_unks(self):
         self._add_unks = True
@@ -73,11 +73,11 @@ class FileVoc(TwoWayVoc):
     def get_id(self, entry):
         if entry not in self.inverted:
             if self._add_unks:
-                #log('unk has been add')
-                #log(entry)
+                # log('unk has been add')
+                # log(entry)
                 return self.unk()
             raise ValueError(
-                "no such value in vocabulary and unks are disabled: %s" % entry)
+                "no such value in vocab and unks are disabled: %s" % entry)
 
         return self.inverted[entry]
 
@@ -93,6 +93,7 @@ class FileVoc(TwoWayVoc):
     def size(self):
         return len(self.direct)
 
+
 def frequency_voc(f):
     freq = dict()
     with open(f, 'r') as f:
@@ -100,6 +101,7 @@ def frequency_voc(f):
             line_split = line.split('\t')
             freq[line_split[0]] = int(line_split[1])
     return freq
+
 
 def create_voc(name, *args, **kwargs):
     vocs = {
@@ -135,7 +137,8 @@ def _run():
     parser.add_argument('--tokenizer', dest='tokenizer', required=True)
     parser.add_argument('-j', '--threads', dest='threads', default=cpu_count(),
                         type=int)
-    parser.add_argument('-m', '--min-freq', dest='min_freq', type=int, default=0)
+    parser.add_argument('-m', '--min-freq', dest='min_freq', type=int,
+                        default=0)
     a = parser.parse_args()
 
     # compile voc for each thread
