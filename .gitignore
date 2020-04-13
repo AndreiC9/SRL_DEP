@@ -1,2 +1,10 @@
 *.pyc
 .vscode/**
+conll2009_batch.train.dep_l
+conll2009.dev.dep_l
+conll2009.train.dep_l
+conll2009_batch.dev.dep_l
+Specific_Dep_2.voc
+Less_annotation_512_0.9.pkl
+data/conll2009/train_conll2009.json.dep
+data/conll2009/dev_conll2009.json.dep
