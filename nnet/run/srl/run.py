@@ -2,7 +2,7 @@ from nnet.run import runner
 from nnet.ml import voc
 import nnet.util as util
 from functools import partial
-from nnet.nn_models.BiLSTM_Label_Link import BiLSTMTagger
+from nnet.nn_models.SRL_DEP import BiLSTMTagger
 import numpy as np
 import torch
 

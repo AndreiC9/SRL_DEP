@@ -7,6 +7,7 @@ from torch.autograd import Variable
 from torch import optim
 import time
 import random
+import numpy as np
 # import copy
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -40,11 +41,12 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
         Best_BiLSTM_1_data.append(weight.data.clone())
     best_word_embeddings_DEP = model.word_embeddings_DEP.weight.data.clone()
     best_pos_embeddings_DEP = model.pos_embeddings_DEP.weight.data.clone()
-    best_word_fixed_embeddings_DEP = model.word_fixed_embeddings_DEP.weight.data.clone()
+    best_word_fixed_embeddings_DEP = model.word_fixed_embeddings_DEP.weight.
+        data.clone()
     best_hidden2tag = model.hidden2tag.weight.data.clone()
     best_MLP = model.MLP.weight.data.clone()
     """
-    Best_DEP_score = -0.1
+    # Best_DEP_score = -0.1
 
     random.seed(1234)
 
@@ -193,9 +195,8 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
                          (e, idx, len(batch)))
 
                 util.log("start test...")
-                (losses, errors, errors_w, NonNullPredicts,
-                    right_NonNullPredicts, NonNullTruths) = (0., 0, 0., 0., 0.,
-                                                             0.)
+                (errors, NonNullPredicts, right_NonNullPredicts,
+                 NonNullTruths) = (0, 0., 0., 0.)
                 total_labels_num = 0.0
                 wrong_labels_num = 0.0
                 spe_total_labels_num = 0.0
@@ -209,27 +210,29 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
                 noNull_predict_spe = 0
                 noNUll_truth_spe = 0
 
-                Dep_count_num = [0.0] * 100
-                Dep_NoNull_Truth = [0.0] * 100
-                Dep_NoNull_Predict = [0.0] * 100
-                Dep_Right_NoNull_Predict = [0.0] * 100
+                # Dep_count_num = [0.0] * 100
+                # Dep_NoNull_Truth = [0.0] * 100
+                # Dep_NoNull_Predict = [0.0] * 100
+                # Dep_Right_NoNull_Predict = [0.0] * 100
 
-                Dep_P = [0.0] * 100
-                Dep_R = [0.0] * 100
-                Dep_F = [0.0] * 100
+                # Dep_P = [0.0] * 100
+                # Dep_R = [0.0] * 100
+                # Dep_F = [0.0] * 100
 
                 predicates_num = 0.0
                 right_disambiguate = 0.0
 
-                log('now dev test')
+                util.log('now dev test')
                 index = 0
 
                 model.eval()
                 with torch.no_grad():
                     for batch in dev_set.batches():
                         index += 1
-                        # loss, e, e_w, NonNullPredict, right_NonNullPredict, NonNullTruth = self.error_computer.compute(model, batch)
-                        errors, errors_w = 0, 0.0
+                        # loss, e, e_w, NonNullPredict, right_NonNullPredict,
+                        #   NonNullTruth = self.error_computer.compute(model,
+                        #   batch)
+                        errors = 0
                         NonNullPredict = 0
                         NonNullTruth = 0
                         right_NonNullPredict = 0
@@ -277,7 +280,8 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
 
                         region_mark = model_input[9]
 
-                        # region_mark_in = Variable(torch.LongTensor(region_mark))
+                        # region_mark_in = Variable(
+                        #   torch.LongTensor(region_mark))
                         region_mark_in = torch.from_numpy(
                             region_mark).to(device)
                         region_mark_in.requires_grad_(False)
@@ -293,7 +297,8 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
                         dep_heads = model_input[12]
 
                         # root_dep_tags = model_input[12]
-                        # root_dep_tags_in = Variable(torch.from_numpy(root_dep_tags), requires_grad=False)
+                        # root_dep_tags_in = Variable(torch.from_numpy(
+                        #   root_dep_tags), requires_grad=False)
 
                         tags = model_input[13]
                         targets = torch.tensor(tags).to(device)
@@ -304,15 +309,22 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
 
                         specific_dep_relations = model_input[15]
                         specific_dep_relations_in = Variable(
-                            torch.from_numpy(specific_dep_relations)).to(device)
+                            torch.from_numpy(specific_dep_relations)).to(
+                                device)
 
-                        SRLloss, DEPloss, SPEDEPloss, loss, SRLprobs, wrong_l_nums, all_l_nums, spe_wrong_l_nums, spe_all_l_nums, \
-                            right_noNull_predict_b, noNull_predict_b, noNUll_truth_b, \
-                            right_noNull_predict_spe_b, noNull_predict_spe_b, noNUll_truth_spe_b\
-                            = model(sentence_in, p_sentence_in, pos_tags_in, sen_lengths, target_idx_in, region_mark_in,
-                                    local_roles_voc_in,
-                                    frames_in, local_roles_mask_in, sent_pred_lemmas_idx_in, dep_tags_in, dep_heads,
-                                    targets, specific_dep_tags_in, specific_dep_relations_in, True)
+                        (SRLloss, DEPloss, SPEDEPloss, loss, SRLprobs,
+                         wrong_l_nums, all_l_nums, spe_wrong_l_nums,
+                         spe_all_l_nums, right_noNull_predict_b,
+                         noNull_predict_b, noNUll_truth_b,
+                         right_noNull_predict_spe_b, noNull_predict_spe_b,
+                         noNUll_truth_spe_b) = model(
+                             sentence_in,
+                            p_sentence_in, pos_tags_in, sen_lengths,
+                            target_idx_in, region_mark_in, local_roles_voc_in,
+                            frames_in, local_roles_mask_in,
+                            sent_pred_lemmas_idx_in, dep_tags_in, dep_heads,
+                            targets, specific_dep_tags_in,
+                            specific_dep_relations_in, True)
 
                         labels = np.argmax(SRLprobs.cpu().data.numpy(), axis=1)
                         labels = np.reshape(

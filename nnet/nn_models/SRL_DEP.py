@@ -63,7 +63,7 @@ class BiLSTMTagger(nn.Module):
             self.frameset_size, frame_embedding_dim)
 
         # Linear layers for dependency section tag prediction
-        self.hidden2tag = nn.Linear(in_features=4*lstm_hidden_dim, 
+        self.hidden2tag = nn.Linear(in_features=4*lstm_hidden_dim,
                                     out_features=2*lstm_hidden_dim)
         self.MLP = nn.Linear(2*lstm_hidden_dim, self.dep_size)
         self.tag2hidden = nn.Linear(self.dep_size, self.pos_size)
