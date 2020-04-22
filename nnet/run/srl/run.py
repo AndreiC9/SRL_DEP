@@ -31,7 +31,7 @@ def bio_reader(record):
     words = []
     for word in sent.split(' '):
         words.append(word)
-
+    # print(len(words))
     pos_tags = pos_tags.split(' ')
 
     # pos_tags.insert(0, '<pad>')
@@ -152,7 +152,6 @@ class SRLRunner(runner.Runner):
                 specific_dep_labels, specific_dep_relations = list(zip(*batch))
 
             sent = [self.word_voc.vocalize(w) for w in sent_]
-
             p_sent = [self.p_word_voc.vocalize(w) for w in sent_]
 
             pos_tags = [self.pos_voc.vocalize(w) for w in pos_tags]
@@ -227,7 +226,6 @@ class SRLRunner(runner.Runner):
                     for c, column in enumerate(row):
                         if targets[r] - rm <= c <= targets[r] + rm:
                             region_mark[r][c] = 1
-
             sent_pred_lemmas_idx = np.zeros(sent_batch.shape, dtype='int64')
             for r, row in enumerate(sent_pred_lemmas_idx):
                 for c, column in enumerate(row):
@@ -261,7 +259,6 @@ class SRLRunner(runner.Runner):
         hps['vdep'] = self.dep_voc.size()
         hps['batch_size'] = self.a.batch
         hps['svdep'] = self.specific_dep_voc.size()
-        # do not use pre-trained embedding for now # FIXME What do they mean?
         hps['word_embeddings'] = util.parse_word_embeddings(
             self.a.word_embeddings)
         # hps['elmo_embeddings_0'] = parse_word_embeddings(self.a.

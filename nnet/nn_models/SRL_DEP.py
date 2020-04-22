@@ -26,10 +26,10 @@ class BiLSTMTagger(nn.Module):
     # def __init__(self, embedding_dim, hidden_dim, vocab_size, tagset_size):
     def __init__(self, hps, *_):
         super(BiLSTMTagger, self).__init__()
-
+        print('This is SRL_DEP')
         batch_size = hps['batch_size']
-        lstm_hidden_dim = hps['sent_hdim']
-        sent_embedding_dim_DEP = 2 * hps['sent_edim'] + 1 * hps['pos_edim'] + 1
+        lstm_hidden_dim = hps['lstm_hidden_states']
+        sent_embedding_dim_DEP = 2*hps['sent_edim'] + 1*hps['pos_edim'] + 1
         sent_embedding_dim_SRL = 4 * hps['sent_edim'] + 1 * hps['pos_edim'] + 1
         # for the region mark
         role_embedding_dim = hps['role_edim']
@@ -37,6 +37,7 @@ class BiLSTMTagger(nn.Module):
         vocab_size = hps['vword']
 
         self.tagset_size = hps['vbio']
+        # print('Tagset size is', self.tagset_size)
         self.pos_size = hps['vpos']
         self.dep_size = hps['vdep']
         self.frameset_size = hps['vframe']
@@ -189,7 +190,7 @@ class BiLSTMTagger(nn.Module):
         embeds_DEP = embeds_DEP.view(
             self.batch_size, len(sentence[0]), self.word_emb_dim)
         pos_embeds = self.pos_embeddings(pos_tags)
-        region_marks = region_marks.view(self.batch_size, len(sentence[0]), 1)
+        region_marks = region_marks.view(self.batch_size, len(sentence[0]), 1).float()
         fixed_embeds = self.word_fixed_embeddings(p_sentence)
         fixed_embeds = fixed_embeds.view(
             self.batch_size, len(sentence[0]), self.word_emb_dim)
@@ -379,7 +380,7 @@ class BiLSTMTagger(nn.Module):
         # b, T, roles
         tag_space = torch.transpose(tag_space, 0, 1)
         tag_space = tag_space.view(len(sentence[0])*self.batch_size, -1)
-
+      # print("Size of tag_space is", tag_space.size())
         SRLprobs = F.softmax(tag_space, dim=1)
 
         # +++++++++++++++++++++++
@@ -426,12 +427,12 @@ class BiLSTMTagger(nn.Module):
             if predict_l != gold_l and gold_l != 0:
                 wrong_l_nums_spe += 1
 
-        # loss_function = nn.NLLLoss(ignore_index=0)
-        targets = targets.view(-1)
-        # tag_scores = F.log_softmax(tag_space)
-        # loss = loss_function(tag_scores, targets)
+        #loss_function = nn.NLLLoss(ignore_index=0)
+        targets = targets[:,1:].reshape(-1)
+        #tag_scores = F.log_softmax(tag_space)
+        #loss = loss_function(tag_scores, targets)
         loss_function = nn.CrossEntropyLoss(ignore_index=0)
-
+      # print("Size of targets is", targets.size())
         SRLloss = loss_function(tag_space, targets)
         DEPloss = loss_function(dep_tag_space, dep_tags.view(-1))
         SPEDEPloss = loss_function(
@@ -445,6 +446,7 @@ class BiLSTMTagger(nn.Module):
         #    loss = SRLloss + DEPloss + SPEDEPloss
         # else:
         #    loss = SRLloss
+      # print("Size of SRLloss is", SRLloss.size())
         loss = SRLloss + 0.5*DEPloss + 0.5*SPEDEPloss
         return SRLloss, DEPloss, SPEDEPloss, loss, SRLprobs, wrong_l_nums, \
             all_l_nums, wrong_l_nums_spe, all_l_nums_spe,  \

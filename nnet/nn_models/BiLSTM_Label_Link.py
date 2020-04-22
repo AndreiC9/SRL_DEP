@@ -186,7 +186,7 @@ class BiLSTMTagger(nn.Module):
             for j in range(bf_e.size()[1]):
                 if dep_heads[i][j] > 0:
                     concat_embeds[i, j] = bf_e[i, dep_heads[i][j] - 1]
-        dep_tag_space = self.MLP(self.label_dropout(F.tanh(self.hidden2tag_M(bf_e) + self.hidden2tag_H(concat_embeds)))).view(
+        dep_tag_space = self.MLP(self.label_dropout(torch.tanh(self.hidden2tag_M(bf_e) + self.hidden2tag_H(concat_embeds)))).view(
             len(sentence[0]) * self.batch_size, -1)
 
         # Spe layer
@@ -208,7 +208,7 @@ class BiLSTMTagger(nn.Module):
         forward_e = forward_h[:, :, :50]
         backward_e = backward_h[:, :, :50]
         bf_e = torch.cat((forward_e, backward_e), 2)
-        dep_tag_space_spe = self.MLP_spe(self.link_dropout(F.tanh(self.hidden2tag_spe(bf_e)))).view(
+        dep_tag_space_spe = self.MLP_spe(self.link_dropout(torch.tanh(self.hidden2tag_spe(bf_e)))).view(
             len(sentence[0]) * self.batch_size, -1)
         label_feature_spe = torch.from_numpy(
             self.hidden2tag_spe(bf_e).data.numpy())
