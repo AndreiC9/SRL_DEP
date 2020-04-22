@@ -23,7 +23,5 @@ python -mnnet.run.srl.run \
 --params-path Less_annotation_512_0.9.pkl \
 --hps "{'id': 1, 'sent_edim': 100, 'sent_hdim': 512, \
 'frame_edim': 128, 'role_edim': 128, 'pos_edim': 16, 'rec_layers': 1, 'gc_layers': 0, \
-'pos': True, 'rm':0, 'alpha': 0.25, \
+'pos': True, 'rm':0, 'alpha': 0.25, 'lstm_hidden_states': 300, \
 'p_lemmas':True}"
-
-

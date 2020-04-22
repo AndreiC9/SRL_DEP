@@ -304,6 +304,7 @@ class BiLSTMTagger(nn.Module):
 
         bias_one = torch.ones(
             (self.batch_size, len(sentence[0]), 1)).to(device)
+        
         hidden_states_word = torch.cat((hidden_states, Variable(bias_one)), 2)
 
         bias_one = torch.ones((self.batch_size, 1)).to(device)
@@ -335,11 +336,15 @@ class BiLSTMTagger(nn.Module):
         right_noNull_predict_spe = 1.0
         noNull_predict_spe = 1.0
         noNUll_truth_spe = 1.0
-        targets = targets.view(-1)
+        # print('tag_space: {}\ntargets:{}'.format(tag_space.size(),
+        #                                          targets.size()))
+        targets = targets[:,1:].reshape(-1)
         loss_function = nn.CrossEntropyLoss(ignore_index=0)
 
+        # print('tag_space: {}\ntargets:{}'.format(tag_space.size(),
+        #                                          targets.size()))
         SRLloss = loss_function(tag_space, targets)
-
+        # raise NotImplementedError
         return SRLloss, 0, 0, 0, SRLprobs, wrong_l_nums, all_l_nums,\
             wrong_l_nums_spe, all_l_nums_spe, right_noNull_predict,\
             noNull_predict, noNUll_truth, right_noNull_predict_spe,\

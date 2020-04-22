@@ -26,9 +26,9 @@ class BiLSTMTagger(nn.Module):
     #def __init__(self, embedding_dim, hidden_dim, vocab_size, tagset_size):
     def __init__(self, hps, *_):
         super(BiLSTMTagger, self).__init__()
-
+        print('This is SRL_DEP')
         batch_size = hps['batch_size']
-        lstm_hidden_dim = hps['sent_hdim']
+        lstm_hidden_dim = hps['lstm_hidden_states']
         sent_embedding_dim_DEP = 2*hps['sent_edim'] + 1*hps['pos_edim'] + 1
         sent_embedding_dim_SRL = 4 * hps['sent_edim'] + 1 * hps['pos_edim'] + 1
         ## for the region mark
@@ -37,6 +37,7 @@ class BiLSTMTagger(nn.Module):
         vocab_size = hps['vword']
 
         self.tagset_size = hps['vbio']
+        # print('Tagset size is', self.tagset_size)
         self.pos_size = hps['vpos']
         self.dep_size = hps['vdep']
         self.frameset_size = hps['vframe']
@@ -163,12 +164,14 @@ class BiLSTMTagger(nn.Module):
         embeds_DEP = self.word_embeddings_DEP(sentence)
         embeds_DEP = embeds_DEP.view(self.batch_size, len(sentence[0]), self.word_emb_dim)
         pos_embeds = self.pos_embeddings(pos_tags)
-        region_marks = region_marks.view(self.batch_size, len(sentence[0]), 1)
+        region_marks = region_marks.view(self.batch_size, len(sentence[0]), 1).float()
         fixed_embeds = self.word_fixed_embeddings(p_sentence)
         fixed_embeds = fixed_embeds.view(self.batch_size, len(sentence[0]), self.word_emb_dim)
 
         embeds_forDEP = torch.cat((embeds_DEP, fixed_embeds, pos_embeds), 2)
         embeds_forDEP = self.DEP_input_dropout(embeds_forDEP)
+        # print("hello")
+        # print(type(embeds_forDEP))
         embeds_forDEP = torch.cat((embeds_forDEP, region_marks), 2)
 
         #first layer
@@ -211,9 +214,9 @@ class BiLSTMTagger(nn.Module):
         added_embeds = torch.zeros(Label_composer.size()[1], Label_composer.size()[0], Label_composer.size()[2]).to(device)
         concat_embeds = (added_embeds + predicate_embeds).transpose(0, 1)
         Label_features = torch.cat((Label_composer, concat_embeds), 2)
-        dep_tag_space = self.MLP(self.label_dropout(F.tanh(self.hidden2tag(Label_features)))).view(
+        dep_tag_space = self.MLP(self.label_dropout(torch.tanh(self.hidden2tag(Label_features)))).view(
             len(sentence[0]) * self.batch_size, -1)
-        dep_tag_space_use = self.MLP(F.tanh(self.hidden2tag(Label_features))).view(
+        dep_tag_space_use = self.MLP(torch.tanh(self.hidden2tag(Label_features))).view(
             len(sentence[0]) * self.batch_size, -1)
 
         Link_composer = hidden_states_2
@@ -223,9 +226,9 @@ class BiLSTMTagger(nn.Module):
             device)
         concat_embeds = (added_embeds + predicate_embeds).transpose(0, 1)
         Link_features = torch.cat((Link_composer, concat_embeds), 2)
-        dep_tag_space_spe = self.MLP_spe(self.link_dropout(F.tanh(self.hidden2tag_spe(Link_features)))).view(
+        dep_tag_space_spe = self.MLP_spe(self.link_dropout(torch.tanh(self.hidden2tag_spe(Link_features)))).view(
             len(sentence[0]) * self.batch_size, -1)
-        dep_tag_space_spe_use = self.MLP_spe(F.tanh(self.hidden2tag_spe(Link_features))).view(
+        dep_tag_space_spe_use = self.MLP_spe(torch.tanh(self.hidden2tag_spe(Link_features))).view(
             len(sentence[0]) * self.batch_size, -1)
 
 
@@ -252,7 +255,8 @@ class BiLSTMTagger(nn.Module):
         embeds_SRL = embeds_SRL.view(self.batch_size, len(sentence[0]), self.word_emb_dim)
         embeds_DEP_use = embeds_DEP.detach()
 
-
+        # for i in (embeds_SRL, embeds_DEP_use, fixed_embeds, sent_pred_lemmas_embeds, pos_embeds, region_marks, SRL_composer, h1, h2):
+          # print(i.shape)
         SRL_hidden_states = torch.cat((embeds_SRL, embeds_DEP_use, fixed_embeds, sent_pred_lemmas_embeds, pos_embeds, region_marks, SRL_composer, h1, h2), 2)
         SRL_hidden_states = self.SRL_input_dropout(SRL_hidden_states)
 
@@ -310,9 +314,8 @@ class BiLSTMTagger(nn.Module):
         # b, T, roles
         tag_space = torch.transpose(tag_space, 0, 1)
         tag_space = tag_space.view(len(sentence[0])*self.batch_size, -1)
-
+      # print("Size of tag_space is", tag_space.size())
         SRLprobs = F.softmax(tag_space, dim=1)
-
         #+++++++++++++++++++++++
         wrong_l_nums = 0.0
         all_l_nums = 0.0
@@ -355,11 +358,11 @@ class BiLSTMTagger(nn.Module):
                 wrong_l_nums_spe += 1
 
         #loss_function = nn.NLLLoss(ignore_index=0)
-        targets = targets.view(-1)
+        targets = targets[:,1:].reshape(-1)
         #tag_scores = F.log_softmax(tag_space)
         #loss = loss_function(tag_scores, targets)
         loss_function = nn.CrossEntropyLoss(ignore_index=0)
-
+      # print("Size of targets is", targets.size())
         SRLloss = loss_function(tag_space, targets)
         DEPloss = loss_function(dep_tag_space, dep_tags.view(-1))
         SPEDEPloss = loss_function(dep_tag_space_spe, specific_dep_relations.view(-1))
@@ -373,6 +376,7 @@ class BiLSTMTagger(nn.Module):
         #    loss = SRLloss + DEPloss + SPEDEPloss
         #else:
         #    loss = SRLloss
+      # print("Size of SRLloss is", SRLloss.size())
         loss = SRLloss + 0.5*DEPloss + 0.5*SPEDEPloss
         return SRLloss, DEPloss, SPEDEPloss, loss, SRLprobs, wrong_l_nums, all_l_nums, wrong_l_nums_spe, all_l_nums_spe,  \
                right_noNull_predict, noNull_predict, noNUll_truth,\

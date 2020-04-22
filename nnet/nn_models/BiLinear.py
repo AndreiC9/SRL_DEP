@@ -225,11 +225,11 @@ class BiLSTMTagger(nn.Module):
         ###########################################
         Label_composer = hidden_states_1
         predicate_embeds = Label_composer[np.arange(0, Label_composer.size()[0]), target_idx_in]
-        print("Predicate embeds is\n", predicate_embeds.numpy().shape)
+        # print("Predicate embeds is\n", predicate_embeds.cpu().detach().numpy().shape)
         # T * B * H
         added_embeds = torch.zeros(Label_composer.size()[1], Label_composer.size()[0], Label_composer.size()[2]).to(
             device)
-        print("Added embeds is\n", added_embeds.numpy().shape)
+        # print("Added embeds is\n", added_embeds.numpy().shape)
         concat_embeds = (added_embeds + predicate_embeds).transpose(0, 1)
         
         Label_features = torch.cat((Label_composer, concat_embeds), 2)
@@ -323,7 +323,7 @@ class BiLSTMTagger(nn.Module):
         # b, times, roles
         tag_space = torch.matmul(lin, predicate_embeds)
         tag_space = tag_space.view(self.batch_size, len(sentence[0]), -1)
-
+        print(tag_space)
 
 
         # b, roles

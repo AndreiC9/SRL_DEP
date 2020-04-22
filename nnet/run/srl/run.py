@@ -1,7 +1,7 @@
 from nnet.run.runner import *
 from nnet.ml.voc import *
 from functools import partial
-from nnet.nn_models.Biaffine_SRL_only_VR import BiLSTMTagger
+from nnet.nn_models.SRL_DEP import BiLSTMTagger
 
 all_labels_voc = []
 
@@ -28,9 +28,9 @@ def bio_reader(record):
     words = []
     for word in sent.split(' '):
         words.append(word)
-
+    # print(len(words))
     pos_tags = pos_tags.split(' ')
-
+    # raise NotImplementedError
     #pos_tags.insert(0, '<pad>')
     #words.insert(0, '.')
 
@@ -148,9 +148,7 @@ class SRLRunner(Runner):
                 targets, f_lemmas, f_targets, labels_voc, labels, specific_dep_labels, specific_dep_relations = list(
                     zip(*batch))
 
-
             sent = [self.word_voc.vocalize(w) for w in sent_]
-
             p_sent = [self.p_word_voc.vocalize(w) for w in sent_]
 
             pos_tags = [self.pos_voc.vocalize(w) for w in pos_tags]
@@ -225,7 +223,6 @@ class SRLRunner(Runner):
                     for c, column in enumerate(row):
                         if targets[r] - rm <= c <= targets[r] + rm:
                             region_mark[r][c] = 1
-
             sent_pred_lemmas_idx = np.zeros(sent_batch.shape, dtype='int64')
             for r, row in enumerate(sent_pred_lemmas_idx):
                 for c, column in enumerate(row):

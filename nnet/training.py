@@ -45,16 +45,22 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
     """
     Best_DEP_score = -0.1
 
-    random.seed(1234)
+    dataset = [batch for batch in train_set.batches()]
+    val_set = [batch for batch in dev_set.batches()]
+
+    srl_loss_history = []
     for e in range(epochs):
         tic = time.time()
-        dataset = [batch for batch in train_set.batches()]
-        init_dataset = [batch for batch in dataset]
+        if dataset != prev_dataset:
+            print("Worth splitting the train_set in batches")
+        prev_dataset = dataset
+        # init_dataset = [batch for batch in dataset]
         random.shuffle(dataset)
         dataset_len = len(dataset)
+        # print((dataset[0][0][1][1]))
         for batch in dataset:
 
-            batch_idx = init_dataset.index(batch)
+            # batch_idx = init_dataset.index(batch)
             sample_count += len(batch)
 
             model.zero_grad()
@@ -63,13 +69,15 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
             record_ids, batch = zip(*batch)
             model_input = converter(batch)
 
-            # model.hidden = model.init_hidden_spe()
-            #model.hidden_0 = model.init_hidden_spe()
-            # model.hidden_2 = model.init_hidden_spe()
-            # model.hidden_3 = model.init_hidden_spe()
-            # model.hidden_4 = model.init_hidden_share()
+            model.hidden = model.init_hidden_spe()
+            model.hidden_0 = model.init_hidden_spe()
+            model.hidden_2 = model.init_hidden_spe()
+            model.hidden_3 = model.init_hidden_spe()
+            model.hidden_4 = model.init_hidden_share()
 
             sentence = model_input[0]
+            # print("Sentence is", sentence)
+            # print("Sentence length is", sentence.shape)
             p_sentence = model_input[1]
 
             sentence_in = torch.from_numpy(sentence).to(device)
@@ -151,7 +159,7 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
             #    Final_loss = SRLloss
 
             # Final_loss = SRLloss
-            Final_loss.backward()
+            Final_loss.backward(retain_graph=True)
             # clip_grad_norm_(parameters=model.hidden2tag_M.parameters(), max_norm=norm)
             # clip_grad_norm_(parameters=model.hidden2tag_H.parameters(), max_norm=norm)
             # clip_grad_value_(parameters=model.parameters(), clip_value=3)
@@ -162,11 +170,12 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
             #if idx % 10000 == 0:
             #    optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr'] * 0.75
 
-            if idx % 100 ==0:
+            if idx % 100 == 0:
                 log(idx)
                 log("+"*80)
                 log('SRLloss')
                 log(SRLloss)
+                srl_loss_history.append(SRLloss.cpu.numpy())
                 #log("DEPloss")
                 #log(DEPloss)
                 #log("SPEDEPloss")
@@ -179,9 +188,9 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
                 del SPEDEPloss
                 del loss
                 del SRLprobs
-                # del model.hidden
-                # del model.hidden_2
-                # del model.hidden_3
+                del model.hidden
+                del model.hidden_2
+                del model.hidden_3
                 del model.hidden_4
 
             if idx % dbg_print_rate == 0:
@@ -221,7 +230,7 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
 
                 model.eval()
                 with torch.no_grad():
-                    for batch in dev_set.batches():
+                    for batch in val_set:
                         index += 1
                         # loss, e, e_w, NonNullPredict, right_NonNullPredict, NonNullTruth = self.error_computer.compute(model, batch)
                         errors, errors_w = 0, 0.0
@@ -235,10 +244,10 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
                         record_ids, batch = zip(*batch)
                         model_input = converter(batch)
                         model.hidden = model.init_hidden_spe()
-                        #model.hidden_0 = model.init_hidden_spe()
-                        # model.hidden_2 = model.init_hidden_spe()
-                        # model.hidden_3 = model.init_hidden_spe()
-                        # model.hidden_4 = model.init_hidden_share()
+                        model.hidden_0 = model.init_hidden_spe()
+                        model.hidden_2 = model.init_hidden_spe()
+                        model.hidden_3 = model.init_hidden_spe()
+                        model.hidden_4 = model.init_hidden_share()
 
 
                         sentence = model_input[0]
@@ -305,7 +314,7 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
                                     targets, specific_dep_tags_in, specific_dep_relations_in, True)
 
                         labels = np.argmax(SRLprobs.cpu().data.numpy(), axis=1)
-                        labels = np.reshape(labels, (sentence.shape[0], sentence.shape[1]+1))
+                        labels = np.reshape(labels, (sentence.shape[0], sentence.shape[1]))
                         wrong_labels_num += wrong_l_nums
                         total_labels_num += all_l_nums
                         spe_wrong_labels_num += spe_wrong_l_nums
@@ -373,11 +382,10 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
                         del SPEDEPloss
                         del loss
                         del SRLprobs
-                        torch.cuda.empty_cache()
-                        # del model.hidden
-                        # del model.hidden_2
-                        # del model.hidden_3
-                        # del model.hidden_4
+                        del model.hidden
+                        del model.hidden_2
+                        del model.hidden_3
+                        del model.hidden_4
 
 
                 Predicat_num = 6300

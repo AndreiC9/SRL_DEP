@@ -234,7 +234,6 @@ class BiLSTMTagger(nn.Module):
 
         self.map_dim = lstm_hidden_dim
 
-
         # self.mlp_word = MLP(
         #     in_features=2 * lstm_hidden_dim,
         #     out_features=self.map_dim ,
@@ -287,7 +286,6 @@ class BiLSTMTagger(nn.Module):
         """
 
         """
-
         fixed_embeds = self.word_fixed_embeddings(p_sentence)
         fixed_embeds = fixed_embeds.view(
             self.batch_size, len(sentence[0]), self.word_emb_dim)
@@ -311,8 +309,10 @@ class BiLSTMTagger(nn.Module):
             (self.batch_size, 1, self.SRL_input_dim)).to(device)
         # Concatenating VR_embedding with x (SRL_hidden_states)
         # TODO Why is zero added?
+        print('SRL_hidden_states.shape is', SRL_hidden_states.shape)
         SRL_hidden_states_cat = torch.cat(
             (self.VR_embedding + add_zero, SRL_hidden_states), 1)
+        print('SRL_hidden_states_cat.shape is', SRL_hidden_states_cat.shape)
         # Applying dropout to the tensor
         SRL_hidden_states = self.SRL_input_dropout(SRL_hidden_states_cat)
 
@@ -326,8 +326,8 @@ class BiLSTMTagger(nn.Module):
 
         # hidden states [time_steps * batch_size * hidden_units]
         # Run the SRL BiLSTM
-        hidden_states, self.hidden_4 = self.BiLSTM_SRL(
-            embeds_sort, self.hidden_4)
+        hidden_states, self.hidden_4 = self.BiLSTM_SRL(embeds_sort,
+                                                       self.hidden_4)
 
         # it seems that hidden states is already batch first, we don't need
         # swap the dims
@@ -346,7 +346,7 @@ class BiLSTMTagger(nn.Module):
 
         # B * H
         hidden_states_3 = hidden_states
-        
+
         # This next block appears only in the _VR file
         target_idx_in = list(target_idx_in)
         for i in range(len(target_idx_in)):
@@ -374,6 +374,8 @@ class BiLSTMTagger(nn.Module):
 
         bias_one = torch.ones(
             (self.batch_size, len(sentence[0])+1, 1)).to(device)
+        print('hidden_states: {}\bias_one:{}'.format(hidden_states.size(),
+                                                 bias_one.size()))
         hidden_states_word = torch.cat((hidden_states, Variable(bias_one)), 2)
 
         bias_one = torch.ones((self.batch_size, 1)).to(device)
@@ -407,9 +409,12 @@ class BiLSTMTagger(nn.Module):
         noNUll_truth_spe = 1.0
         targets = targets.view(-1)
         loss_function = nn.CrossEntropyLoss(ignore_index=0)
+        print("Size of tag_space is", tag_space.size())
+        print("Size of targets is", targets.size())
 
         SRLloss = loss_function(tag_space, targets)
-
+        print("Size of SRLloss is", SRLloss.size())
+        raise NotImplementedError
         return SRLloss, 0, 0, 0, SRLprobs, wrong_l_nums, all_l_nums,\
             wrong_l_nums, all_l_nums, right_noNull_predict, noNull_predict,\
             noNUll_truth, right_noNull_predict_spe, noNull_predict_spe,\
