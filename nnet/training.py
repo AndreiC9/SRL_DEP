@@ -51,6 +51,9 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
     dataset = [batch for batch in train_set.batches()]
     val_set = [batch for batch in dev_set.batches()]
     srl_loss_history = []
+    precision_list = []
+    recall_list = []
+    f1_list = []
     for e in range(epochs):
         tic = time.time()
         # init_dataset = [batch for batch in dataset]
@@ -351,7 +354,8 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
                             for j in range(len(labels[i])):
                                 best = local_voc[labels[i][j]]
                                 true = local_voc[tags[i][j]]
-
+                                assert ((true == best) and
+                                        (labels[i][j] == tags[i][j]))
                                 if j == 0:
                                     predicates_num += 1
                                     if best == true:
@@ -363,12 +367,15 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
                                     # Dep_NoNull_Truth[dep_tags_in[i][j]] += 1
                                 if true != best:
                                     errors += 1
-                                if best != '<pad>' and best != 'O' and true != '<pad>':
+                                if best != '<pad>' and best != 'O' and \
+                                        true != '<pad>':
                                     NonNullPredict += 1
-                                    # Dep_NoNull_Predict[dep_tags_in[i][j]] += 1
+                                    # Dep_NoNull_Predict[dep_tags_in[i][j]] 
+                                    #   += 1
                                     if true == best:
                                         right_NonNullPredict += 1
-                                        # Dep_Right_NoNull_Predict[dep_tags_in[i][j]] += 1
+                                        # Dep_Right_NoNull_Predict[
+                                        #   dep_tags_in[i][j]] += 1
                         """
                                 best = labels[i][j]
                                 true = tags[i][j]
@@ -386,7 +393,8 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
                                     Dep_NoNull_Predict[dep_tags_in[i][j]] += 1
                                     if true == best:
                                         right_NonNullPredict += 1
-                                        Dep_Right_NoNull_Predict[dep_tags_in[i][j]] += 1
+                                        Dep_Right_NoNull_Predict[
+                                            dep_tags_in[i][j]] += 1
                         """
 
                         NonNullPredicts += NonNullPredict
@@ -424,6 +432,11 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
                 util.log('disambiguate accuraccy:',
                          right_disambiguate/predicates_num)
                 util.log('Best F1: ' + str(best_F1))
+
+                precision_list.append(P)
+                recall_list.append(R)
+                f1_list.append(F1)
+
                 if F1 > best_F1:
                     best_F1 = F1
                     torch.save(model.state_dict(), params_path)
@@ -431,7 +444,12 @@ def train(model, train_set, dev_set, test_set, epochs, converter,
 
         #######################################################################
         tac = time.time()
-
+        np_array = np.array(precision_list)
+        np_recall = np.array(recall_list)
+        np_p1 = np.array(f1_list)
+        np_metrics = np.stack(np_array, np_recall, np_p1)
+        metrics_file_name = 'metrics_after_epoch_' + str(e) + '.csv'
+        np.savetxt(metrics_file_name, np_metrics, delimiter=',')
         passed = tac - tic
         util.log("epoch %i took %f min (~%f sec per sample)" % (
             e, passed / 60, passed / sample_count
